@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>שאלון התאמת קפה</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
+  <style>
+    body { background: #fff8f0; font-family: 'Rubik', sans-serif; margin: 0; padding: 0; }
+    .intro-section, .quiz-container, .results-container { min-height: 100vh; display: flex; align-items: center; justify-content: center; text-align: center; flex-direction: column; padding: 2rem; }
+    .hero-icon { font-size: 3rem; color: #a85b24; margin-bottom: 1rem; }
+    .btn-primary { background-color: #a85b24; border: none; border-radius: 12px; padding: 12px 24px; font-size: 1.25rem; color: #fff; text-decoration: none; }
+    .btn-primary:hover { background-color: #8b4513; }
+    .options { list-style: none; padding: 0; max-width: 600px; width: 100%; }
+    .options li { padding: 12px; margin: 8px 0; background: #f5f5f5; border-radius: 10px; cursor: pointer; transition: background 0.3s; text-align: right; }
+    .options li:hover { background: #ddd; }
+    .card img { max-width: 100%; border-radius: 8px; margin-bottom: 1rem; }
+    .badge { margin: 0 4px 4px 0; }
+    .stars { display: inline-block; }
+    .stars span { font-size: 1.2rem; }
+  </style>
+</head>
+<body>
+  <!-- Intro -->
+  <div class="intro-section" id="intro">
+    <span class="hero-icon">☕️</span>
+    <h1 class="fw-bold">מצא את הקפה המושלם עבורך</h1>
+    <p class="lead">עם שאלון חכם ומותאם אישית.</p>
+    <button class="btn-primary mt-3" onclick="startQuiz()">התחל את השאלון</button>
+  </div>
+
+  <!-- Quiz Steps -->
+  <div class="quiz-container" id="quiz" style="display:none;">
+    <div id="steps-wrapper"></div>
+  </div>
+
+  <!-- Results -->
+  <div class="results-container" id="results" style="display:none;">
+    <h2 class="mb-4">הנה ההמלצות שלך:</h2>
+    <div id="recommendations" class="w-100" style="max-width:800px;"></div>
+  </div>
+
+  <script>
+    // ===== Embedded coffees.json =====
+    const coffees = [
+      { name: "בורנדי מאשה honey process", origin:"Burundi", process:"Honey", roast_level:"medium", bitterness:3, acidity:6, body:6, sweetness:8, aroma_intensity:7, single_origin:true, automatic_machine:true, manual_brewing:true, espresso_suitable:true, filter_suitable:true, flavor_notes:"פירות טרופיים, דבש, סוכר חום", description:"קפה בורונדי בעיבוד Honey Process הוא קפה ייחודי המשלב מתיקות טבעית עם פרופיל טעמים מורכב.", image_url:"https://static.wixstatic.com/media/8d6060_2240b85bb2e74aa4879d77e6ce8528b3~mv2.png", purchase_url:"https://www.cafevizzini.co.il/product-page/בורנדי-מאשה-האני-פרוסס-burundi-masha-honey-process" },
+      { name: "אתיופיה סידמו דארק - Ethiopia sidamo DARK", origin:"Ethiopia", process:"Washed", roast_level:"dark", bitterness:6, acidity:5, body:7, sweetness:6, aroma_intensity:7, single_origin:true, automatic_machine:true, manual_brewing:true, espresso_suitable:true, filter_suitable:true, flavor_notes:"שוקולד מריר, תבלינים", description:"אתיופיה סידמו דארק – קלייה כהה, גוף מלא, טעמי שוקולד מריר ותבלינים, מתאים לאספרסו ולמכונות אוטומטיות.", image_url:"https://static.wixstatic.com/media/placeholder-coffee.jpg", purchase_url:"https://www.cafevizzini.co.il/coffee" }
+    ];
+
+    const steps = [
+      { id:'1', question:'איך את/ה שותה קפה בדרך כלל?', field:'prep', options:[{text:'אספרסו',key:'espresso'},{text:'פילטר / V60 / פרנץ\' פרס',key:'filter'},{text:'מקינטה',key:'manual'},{text:'קולד ברו',key:'manual'},{text:'משקאות עם חלב (קפוצ\'ינו, לאטה)',key:'auto'}] },
+      { id:'2', question:'מה חשוב לך בטעם הקפה?',       field:'taste', options:[{text:'שוקולדיים ומרירים',key:'bitter'},{text:'פירותיים וחמצמצים',key:'sour'},{text:'מתוקים וקרמליים',key:'sweet'},{text:'איזון עדין',key:'balanced'}] },
+      { id:'3', question:'מה רמת הקלייה שאת/ה אוהב/ת?',    field:'body',  options:[{text:'בהירה',key:'light'},{text:'בינונית',key:'medium'},{text:'כהה',key:'strong'},{text:'לא משנה',key:'medium'}] },
+      { id:'4', question:'מה חשוב יותר?',                field:'aroma', options:[{text:'גוף מלא',key:'strong'},{text:'חומציות מודגשת',key:'sour'},{text:'מרירות נמוכה',key:'balanced'},{text:'ארומה חזקה',key:'strong'}] },
+      { id:'5', question:'חד-זני או תערובת?',             field:'origin',options:[{text:'חד-זני',key:'single'},{text:'תערובת',key:'blend'},{text:'אין העדפה',key:'blend'}] }
+    ];
+
+    const QUIZ_MAPPING = {
+      prep:   { auto:{automatic_machine:true}, manual:{manual_brewing:true}, espresso:{espresso_suitable:true}, filter:{filter_suitable:true} },
+      taste:  { bitter:{bitterness:9}, balanced:{bitterness:5,sweetness:5,acidity:5}, sweet:{sweetness:8}, sour:{acidity:8} },
+      body:   { light:{body:3},   medium:{body:6},   strong:{body:9} },
+      aroma:  { strong:{aroma_intensity:9}, delicate:{aroma_intensity:5}, complex:{aroma_intensity:7} },
+      origin: { single:{single_origin:true}, blend:{single_origin:false} }
+    };
+
+    let answers = {};
+
+    function startQuiz(){ document.getElementById('intro').style.display='none'; document.getElementById('quiz').style.display='flex'; renderStep('1'); }
+
+    function renderStep(id){ const step=steps.find(s=>s.id===id); let html=`<h2>${step.question}</h2><ul class="options">`; step.options.forEach(o=>html+=`<li data-field="${step.field}" data-key="${o.key}">${o.text}</li>`); html+=`</ul>`; document.getElementById('steps-wrapper').innerHTML=html; document.querySelectorAll('.options li').forEach(li=>li.onclick=()=>selectOption(id,li.dataset.field,li.dataset.key)); }
+
+    function selectOption(stepId,field,key){ answers[field]=key; answers.profile=answers.profile||{}; Object.assign(answers.profile, QUIZ_MAPPING[field][key]||{}); const idx=steps.findIndex(s=>s.id===stepId); idx<steps.length-1?renderStep(steps[idx+1].id):showResults(); }
+
+    function showResults(){ document.getElementById('quiz').style.display='none'; document.getElementById('results').style.display='flex'; const recs=recommend(coffees,answers.profile); const cont=document.getElementById('recommendations'); recs.forEach(c=>{ const card=document.createElement('div'); card.className='card p-3 mb-4'; card.innerHTML=`<img src="${c.image_url}" alt=""><h4>${c.name}</h4><p class="text-muted">${c.origin} | ${c.process}</p><p>${c.description}</p><div>${renderStars(c.bitterness)+' מרירות'}${renderStars(c.acidity)+' חמיצות'}${renderStars(c.body)+' גוף'}${renderStars(c.sweetness)+' מתיקות'}${renderStars(c.aroma_intensity)+' ארומה'}</div><div class="mt-2">${renderBadges(c)}</div><a href="${c.purchase_url}" target="_blank" class="btn-primary mt-3">לרכישה</a>`; cont.appendChild(card); }); }
+
+    function recommend(arr,prefs){ return arr.map(c=>{ let score=0,count=0; for(const k in prefs){ count++; const v=prefs[k]; if(typeof v==='boolean'){ if(c[k]===v) score++; } else { score+=1-Math.abs((c[k]||5)-v)/9; }} return {...c, match:Math.round((score/count)*100)}; }).sort((a,b)=>b.match-a.match).slice(0,3); }
+
+    function renderStars(val){ const stars=Math.round(val/2); let s=''; for(let i=0;i<5;i++) s+=`<span class="${i<stars?'text-warning':'text-muted'}">★</span>`; return `<span class="stars me-2">${s}</span>`; }
+    function renderBadges(c){ let html=''; const roastClass={'light':'bg-info text-dark','medium':'bg-warning text-dark','medium_dark':'bg-secondary','dark':'bg-dark'}; html+=`<span class="badge ${roastClass[c.roast_level]||'bg-secondary'}">קלייה: ${c.roast_level}</span>`; html+=`<span class="badge ${c.single_origin?'bg-primary':'bg-secondary'}">${c.single_origin?'חד-זני':'תערובת'}</span>`; if(c.automatic_machine) html+=`<span class="badge bg-success">מכונה אוטומטית</span>`; if(c.manual_brewing) html+=`<span class="badge bg-info text-dark">הכנה ידנית</span>`; if(c.espresso_suitable) html+=`<span class="badge bg-danger">אספרסו</span>`; if(c.filter_suitable) html+=`<span class="badge bg-warning text-dark">פילטר</span>`; return html; }
+  </script>
+</body>
+</html>
